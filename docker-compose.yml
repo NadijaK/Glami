@@ -1,0 +1,55 @@
+---
+version: '3.5'
+
+services:
+  nginx:
+    image: docker.io/library/nginx:latest
+    restart: unless-stopped
+    ports: 
+      - 80:80
+    volumes:
+      - ./nginx/site.conf:/etc/nginx/conf.d/site.conf
+
+  nginx-prometheus-exporter:
+    image: docker.io/nginx/nginx-prometheus-exporter
+    depends_on:
+      - nginx
+    ports:
+      - 9113:9113
+    command:
+      - -nginx.scrape-uri
+      - http://nginx:8080/metrics
+
+  prometheus:
+    image: docker.io/prom/prometheus:latest
+    restart: unless-stopped
+    depends_on: 
+      - nginx-prometheus-exporter
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml
+
+  alertmanager:
+    image: docker.io/prom/alertmanager
+    restart: unless-stopped
+    depends_on: 
+      - prometheus
+    ports:
+      - 9093:9093
+    volumes:
+      - "./alertmanager:/config"
+      # - alertmanager-data:/data
+    command: --config.file=/config/alertmanager.yml --log.level=debug
+
+  grafana:
+    image: docker.io/grafana/grafana:latest
+    depends_on: 
+      - prometheus
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana/grafana.yml:/etc/grafana/provisioning/datasources/grafana.yml

@@ -1,0 +1,10 @@
+groups:
+- name: example
+  rules:
+  - alert: HighRequestNumber
+    expr: nginx_http_requests_total > 20
+    for: 2m
+    labels:
+      severity: page
+    annotations:
+      summary: High request latency
